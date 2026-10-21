@@ -21,7 +21,7 @@ def executer(commande, saisies):
                 saisies.append((c, m, v))
                 print(f"{c}  {m:.3f} mm -> {v}")
             except ValueError as err:
-                print(f"Refusé : {err}")
+                print(f"Refusé {err}")
             return True
         case ["lot"]:
             print(rapport(LOT_A))
