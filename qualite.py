@@ -129,3 +129,14 @@ def rapport(lignes, *, nominal=NOMINAL, tolerance=TOLERANCE):
             sortie.append(f"  {err}")
             
     return "\n".join(sortie)
+
+
+def histogramme(mesures, *, debut, pas, nb_classes):
+    lignes = []
+    for i in range(nb_classes):
+        bas = round(debut + i * pas, 3)
+        haut = round(debut + (i + 1) * pas, 3)
+        count = sum(1 for m in mesures if bas <= m < haut)
+        etoiles = f" {'*' * count}"
+        lignes.append(f"[{bas:.3f} ; {haut:.3f}[{etoiles}")
+    return "\n".join(lignes)
