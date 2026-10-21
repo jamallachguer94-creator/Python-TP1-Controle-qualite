@@ -95,3 +95,37 @@ def capabilite(mesures, *, nominal=NOMINAL, tolerance=TOLERANCE):
     cp = (t_max - t_min) / (6 * s)
     cpk = min(t_max - m, m - t_min) / (3 * s)
     return round(cp, 2), round(cpk, 2)
+
+
+def entete(nominal=NOMINAL, tolerance=TOLERANCE):
+    return f"Contrôle des axes\n{nominal:.2f} ± {tolerance:.2f} mm"
+
+def rapport(lignes, *, nominal=NOMINAL, tolerance=TOLERANCE):
+    resultats, erreurs = analyser_lot(lignes, nominal=nominal, tolerance=tolerance)
+    sortie = [entete(nominal, tolerance)]
+    sortie.append(f"{'Code':<10} {'Mesure':>8} {'Écart':>9}   Verdict")
+    
+    for code, mesure, v in resultats:
+        e = ecart(mesure, nominal)
+        sortie.append(f"{code:<10} {mesure:>8.3f} {e:>+9.3f}   {v}")
+        
+    c, a, r = compter_verdicts(resultats)
+    total = c + a + r
+    taux = (c / total) if total else 0.0
+    sortie.append(f"Pièces {total} | conformes: {c} ({taux:.1%})  à reprendre {a} rebuts: {r}")
+    
+    valides = [m for _, m, _ in resultats]
+    if len(valides) >= 2:
+        try:
+            cp, cpk = capabilite(valides, nominal=nominal, tolerance=tolerance)
+            etat = "procédé capable" if cpk >= 1.33 else "procédé NON capable"
+            sortie.append(f"Cp = {cp:.2f} | Cpk = {cpk:.2f} -> {etat}")
+        except ValueError:
+            pass
+            
+    if erreurs:
+        sortie.append(f"Lignes rejetées: {len(erreurs)}")
+        for err in erreurs:
+            sortie.append(f"  {err}")
+            
+    return "\n".join(sortie)
