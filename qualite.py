@@ -71,3 +71,27 @@ def compter_verdicts(resultats):
         elif v == "rebut":
             r += 1
     return c, a, r
+
+
+def moyenne(*valeurs):
+    if not valeurs:
+        raise ValueError("Aucune valeur fournie")
+    return sum(valeurs) / len(valeurs)
+
+def ecart_type(*valeurs):
+    if len(valeurs) < 2:
+        raise ValueError("Au moins 2 valeurs requises")
+    m = moyenne(*valeurs)
+    somme_ecarts = sum((x - m) ** 2 for x in valeurs)
+    return math.sqrt(somme_ecarts / (len(valeurs) - 1))
+
+def capabilite(mesures, *, nominal=NOMINAL, tolerance=TOLERANCE):
+    s = ecart_type(*mesures)
+    if s == 0:
+        raise ValueError("Écart-type nul")
+    m = moyenne(*mesures)
+    t_min = nominal - tolerance
+    t_max = nominal + tolerance
+    cp = (t_max - t_min) / (6 * s)
+    cpk = min(t_max - m, m - t_min) / (3 * s)
+    return round(cp, 2), round(cpk, 2)
