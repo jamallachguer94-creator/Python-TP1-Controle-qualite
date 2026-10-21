@@ -47,3 +47,27 @@ def analyser_ligne(ligne, *, nominal=NOMINAL, tolerance=TOLERANCE):
     mesure = lire_mesure(champs[1])
     v = verdict(mesure, nominal, tolerance)
     return (code, mesure, v)
+
+
+def analyser_lot(lignes, **reglages):
+    resultats = []
+    erreurs = []
+    for i, ligne in enumerate(lignes, start=1):
+        if not ligne.strip() or ligne.lstrip().startswith("#"):
+            continue
+        try:
+            resultats.append(analyser_ligne(ligne, **reglages))
+        except ValueError as err:
+            erreurs.append(f"ligne {i} {err}")
+    return resultats, erreurs
+
+def compter_verdicts(resultats):
+    c = a = r = 0
+    for _, _, v in resultats:
+        if v == "conforme":
+            c += 1
+        elif v == "à reprendre":
+            a += 1
+        elif v == "rebut":
+            r += 1
+    return c, a, r
