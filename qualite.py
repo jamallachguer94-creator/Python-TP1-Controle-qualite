@@ -33,3 +33,17 @@ def verdict(mesure, nominal=NOMINAL, tolerance=TOLERANCE):
         return "à reprendre"
     else:
         return "rebut"
+
+
+def analyser_ligne(ligne, *, nominal=NOMINAL, tolerance=TOLERANCE):
+    champs = ligne.split(";")
+    if len(champs) != 2:
+        raise ValueError(f"2 champs attendus, {len(champs)} trouvé(s)")
+    
+    code = champs[0].strip().upper()
+    if not valider_code(code):
+        raise ValueError(f"code invalide: {code!r}")
+        
+    mesure = lire_mesure(champs[1])
+    v = verdict(mesure, nominal, tolerance)
+    return (code, mesure, v)
