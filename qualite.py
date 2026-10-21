@@ -18,3 +18,18 @@ def valider_code(code):
             code[:3].isalpha() and code[:3].isupper() and code[:3].isascii() and 
             code[3] == "-" and 
             code[4:].isdigit())
+
+
+def ecart(mesure, nominal=NOMINAL):
+    return round(mesure - nominal, 3)
+
+def verdict(mesure, nominal=NOMINAL, tolerance=TOLERANCE):
+    if tolerance <= 0:
+        raise ValueError("Tolérance invalide")
+    e = ecart(mesure, nominal)
+    if abs(e) <= tolerance:
+        return "conforme"
+    elif e > tolerance:
+        return "à reprendre"
+    else:
+        return "rebut"
