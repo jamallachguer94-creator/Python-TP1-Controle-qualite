@@ -4,20 +4,37 @@ NOMINAL = 25.0
 TOLERANCE = 0.05
 
 def lire_mesure(texte):
+    texte_nettoye = (
+        texte.strip()
+        .lower()
+        .removesuffix("mm")
+        .strip()
+        .replace(",", ".")
+    )
+
     try:
-        t_propre = texte.strip().lower().removesuffix("mm").strip().replace(",", ".")
-        valeur = float(t_propre)
-        if valeur <= 0 or not math.isfinite(valeur):
-            raise ValueError()
-        return valeur
+        mesure = float(texte_nettoye)
     except ValueError:
-        raise ValueError(f"mesure invalide: {texte.strip()!r}")
+        raise ValueError(
+            f"mesure invalide : {texte.strip()!r}"
+        )
+
+    if not math.isfinite(mesure) or mesure <= 0:
+        raise ValueError(
+            f"mesure invalide : {texte.strip()!r}"
+        )
+
+    return mesure
 
 def valider_code(code):
-    return (len(code) == 8 and 
-            code[:3].isalpha() and code[:3].isupper() and code[:3].isascii() and 
-            code[3] == "-" and 
-            code[4:].isdigit())
+    return (
+        len(code) == 8
+        and code.isascii()
+        and code[:3].isalpha()
+        and code[:3].isupper()
+        and code[3] == "-"
+        and code[4:].isdigit()
+    )
 
 
 def ecart(mesure, nominal=NOMINAL):
@@ -42,7 +59,7 @@ def analyser_ligne(ligne, *, nominal=NOMINAL, tolerance=TOLERANCE):
     
     code = champs[0].strip().upper()
     if not valider_code(code):
-        raise ValueError(f"code invalide: {code!r}")
+        raise ValueError(f"code invalide : '{code}'")
         
     mesure = lire_mesure(champs[1])
     v = verdict(mesure, nominal, tolerance)
@@ -58,7 +75,7 @@ def analyser_lot(lignes, **reglages):
         try:
             resultats.append(analyser_ligne(ligne, **reglages))
         except ValueError as err:
-            erreurs.append(f"ligne {i} {err}")
+            erreurs.append(f"ligne {i} : {err}")
     return resultats, erreurs
 
 def compter_verdicts(resultats):
@@ -101,33 +118,70 @@ def entete(nominal=NOMINAL, tolerance=TOLERANCE):
     return f"Contrôle des axes\n{nominal:.2f} ± {tolerance:.2f} mm"
 
 def rapport(lignes, *, nominal=NOMINAL, tolerance=TOLERANCE):
-    resultats, erreurs = analyser_lot(lignes, nominal=nominal, tolerance=tolerance)
-    sortie = [entete(nominal, tolerance)]
-    sortie.append(f"{'Code':<10} {'Mesure':>8} {'Écart':>9}   Verdict")
-    
+    resultats, erreurs = analyser_lot(
+        lignes,
+        nominal=nominal,
+        tolerance=tolerance
+    )
+
+    conformes, a_reprendre, rebuts = compter_verdicts(resultats)
+
+    sortie = []
+
+    # En-tête
+    sortie.append(
+        f"Contrôle des axes : {nominal:.2f} ± {tolerance:.2f} mm"
+    )
+
+    # En-tête du tableau
+    sortie.append(
+        f"{'Code':<10}{'Mesure':>8}{'Écart':>9}   Verdict"
+    )
+
+    # Détails des pièces
     for code, mesure, v in resultats:
         e = ecart(mesure, nominal)
-        sortie.append(f"{code:<10} {mesure:>8.3f} {e:>+9.3f}   {v}")
-        
-    c, a, r = compter_verdicts(resultats)
-    total = c + a + r
-    taux = (c / total) if total else 0.0
-    sortie.append(f"Pièces {total} | conformes: {c} ({taux:.1%})  à reprendre {a} rebuts: {r}")
-    
-    valides = [m for _, m, _ in resultats]
-    if len(valides) >= 2:
-        try:
-            cp, cpk = capabilite(valides, nominal=nominal, tolerance=tolerance)
-            etat = "procédé capable" if cpk >= 1.33 else "procédé NON capable"
-            sortie.append(f"Cp = {cp:.2f} | Cpk = {cpk:.2f} -> {etat}")
-        except ValueError:
-            pass
-            
+
+        sortie.append(
+            f"{code:<10}{mesure:>8.3f}{e:>+9.3f}   {v}"
+        )
+
+    # Bilan
+    total = len(resultats)
+    taux = conformes / total if total > 0 else 0.0
+
+    sortie.append(
+        f"Pièces : {total} | conformes : {conformes} "
+        f"({taux:.1%}) | à reprendre : {a_reprendre} | rebuts : {rebuts}"
+    )
+
+    # Capabilité : uniquement avec au moins deux pièces
+    if total >= 2:
+        mesures = [mesure for code, mesure, v in resultats]
+
+        cp, cpk = capabilite(
+            mesures,
+            nominal=nominal,
+            tolerance=tolerance
+        )
+
+        conclusion = (
+            "procédé capable"
+            if cpk >= 1.33
+            else "procédé NON capable"
+        )
+
+        sortie.append(
+            f"Cp = {cp:.2f} | Cpk = {cpk:.2f} -> {conclusion}"
+        )
+
+    # Lignes rejetées
     if erreurs:
-        sortie.append(f"Lignes rejetées: {len(erreurs)}")
-        for err in erreurs:
-            sortie.append(f"  {err}")
-            
+        sortie.append(f"Lignes rejetées : {len(erreurs)}")
+
+        for erreur in erreurs:
+            sortie.append(f"  {erreur}")
+
     return "\n".join(sortie)
 
 

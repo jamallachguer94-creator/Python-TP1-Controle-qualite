@@ -14,26 +14,35 @@ except ImportError:
 
 def executer(commande, saisies):
     mots = commande.split()
+
     match mots:
         case ["mesure", code, valeur]:
             try:
                 c, m, v = analyser_ligne(f"{code}; {valeur}")
-                saisies.append((c, m, v))
-                print(f"{c}  {m:.3f} mm -> {v}")
             except ValueError as err:
-                print(f"Refusé {err}")
+                print(f"Refusé : {err}")
+            else:
+                saisies.append((c, m, v))
+                print(f"{c} : {m:.3f} mm -> {v}")
+
             return True
+
         case ["lot"]:
             print(rapport(LOT_A))
             return True
+
         case ["aide"]:
             print(AIDE)
             return True
+
         case ["quitter"]:
-            print(f"{len(saisies)} pièce(s) contrôlée(s) à la main. Au revoir.")
+            print(
+                f"{len(saisies)} pièce(s) contrôlée(s) à la main. Au revoir."
+            )
             return False
+
         case _:
-            print(f"Commande inconnue {commande!r} (tapez aide)")
+            print(f"Commande inconnue : {commande!r} (tapez aide)")
             return True
 
 def main():
